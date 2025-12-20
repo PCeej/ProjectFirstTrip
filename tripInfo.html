@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+        <link rel="stylesheet" href="mapstyler.css">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+        <title> Trip Info </title>
+        <style>
+            .allSearch { 
+                width:75%; 
+                margin: 0 auto; 
+                position: relative; 
+            } 
+             #firstInfo { 
+                display: flex;          /* align items in one row */
+                align-items: flex-start;
+                gap: 20px;              /* space between timetable & map */
+                width: 100%;
+            } 
+            #LocName { 
+                font-size: 50px; 
+            } 
+            #LocType { 
+                font-size:30px; 
+            } 
+            .stationDetails { 
+                width:90%; 
+                font-family:'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif; 
+                padding:10px; 
+                font-size:25px; 
+            }
+            /* TIMETABLE — aligned left, max-width 30%, wrapping */
+            #timeTable {
+                max-width: 30%;
+                width: 30%;
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                background-color: rgb(226, 235, 236);
+                border-radius: 8px;
+                padding: 16px 16px;
+            }
+
+            /* EACH DIRECTION BLOCK */
+            .direction {
+                border: 2px solid #333;
+                padding: 10px;
+                border-radius: 8px;
+                text-align:center;
+                display: flex;
+                flex-wrap: wrap;        /* ← allows wrapping */
+                gap: 10px;
+                width: 100%;
+                box-sizing: border-box;
+            }
+
+            .direction > .dir-label {
+                flex: 1 1 100%;         /* ← direction text takes full width on wrap */
+                font-weight: bold;
+                word-break: break-word;
+            }
+
+            .timeBox {
+                flex: 1 1 120px;        /* ← box shrinks but never below 120px */
+                box-sizing: border-box;
+                border: 2px solid #333;
+                border-radius: 8px;
+                padding: 10px;
+                text-align: center;
+                background: #f8f8f8;
+            }
+
+            /* TIME TEXT */
+            .time {
+                font-size: 1rem;
+                font-weight: bold;
+                margin-bottom: 6px;
+            }
+
+            /* LABEL */
+            .label {
+                font-size: 0.8rem;
+                color: #555;
+            }
+
+            /* MAP — takes remaining width */
+            #mapWrap{
+                width: 70%;
+                display: flex;
+                flex-direction: column;
+                box-sizing: border-box;
+                background-color: rgb(226, 235, 236);
+                border-radius: 8px;
+                padding: 16px 16px;
+            }
+
+            #mapWrap p{
+                margin: 0;
+                padding: 8px;
+                font-size: 20px;
+                line-height: 1.2;
+                flex: 0 0 auto;
+            }
+            #map {
+                flex: 1 1 auto;        /* ← grows to fill remaining height */
+                width: 100%;
+                min-height:200px;
+                
+            }
+           
+        </style>
+    </head>
+    <body>
+        <div class="allSearch">
+            <div class="stationDetails">
+                <span id="LocName">The location</span><br>
+                <span id="LocType">The type</span><br>
+                <span>Part of <span id="RouteName"> route</span></span>
+            </div>
+            <div class="alert alert-warning" role="alert">
+                <span id="warnDirection"></span><span id="warnStation"></span><span id="textDescription"></span><span id="minutesRemaining"></span>
+            </div>
+
+            <div id="firstInfo">
+               <div id="timeTable">
+                    <span style="font-size:30px; font-family:'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;">Time Schedule</span><span style="font-size:20px; font-family:'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;" id="Day"></span>
+                    <div class="direction">
+                        <div class="dir-label"><span id="direction2">Northbound</span><br>to <span id="station2">XSTATION</span></div>
+
+                        <div class="timeBox">
+                            <div id="dir2FirstTrip" class="time">6:00 AM</div>
+                            <div class="label">First Trip</div>
+                        </div>
+
+                        <div class="timeBox">
+                            <div id="dir2LastTrip" class="time"></div>
+                            <div class="label">Last Trip</div>
+                        </div>
+                    </div>
+                    
+                    <div class="direction">
+                        <div class="dir-label"><span id="direction1">Southbound</span><br>to <span id="station1">XSTATION</span></div>
+
+                        <div class="timeBox">
+                            <div id="dir1FirstTrip" class="time">6:00 AM</div>
+                            <div class="label">First Trip</div>
+                        </div>
+
+                        <div class="timeBox">
+                            <div id="dir1LastTrip" class="time"></div>
+                            <div class="label">Last Trip</div>
+                        </div>
+                    </div>
+                </div>
+                <div id="mapWrap">
+                    <span style="font-size:20px; font-family:'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;">Map</span>
+                    <div id="map"></div>
+                </div>
+            </div>
+                
+        </div>
+    <script>
+        
+        document.addEventListener('DOMContentLoaded', () => {
+        
+        const feature = JSON.parse(localStorage.getItem("searchedFeatures"));
+
+        document.getElementById("LocName").textContent = feature.properties.name;
+        document.getElementById("LocType").textContent = feature.properties.type.toUpperCase();
+        document.getElementById("RouteName").textContent = feature.properties.System;
+        document.getElementById("direction2").textContent = feature.properties.direction2;
+        document.getElementById("station2").textContent = feature.properties.station2;
+        document.getElementById("direction1").textContent = feature.properties.direction1;
+        document.getElementById("station1").textContent = feature.properties.station1;
+        //const 
+
+        function to12Hour(time24) {
+        if (!time24) return "";
+        const [hourStr, minute] = time24.split(":");
+        let hour = parseInt(hourStr, 10);
+        const ampm = hour >= 12 ? "PM" : "AM";
+        hour = hour % 12 || 12; // convert 0 to 12
+        return `${hour}:${minute} ${ampm}`;
+    }
+
+    function timeCalc(timeStr, isLastTrip){
+        const [h, m] = timeStr.split(':').map(Number);
+        const tripTime = new Date();
+        tripTime.setHours(h, m, 0, 0);
+
+        const now = new Date();
+        let diff;
+
+        if (isLastTrip) {
+            // Last trips: remaining minutes until trip
+            diff = (tripTime - now) / 60000;
+        } else {
+            // First trips: wrap around if trip already passed
+            diff = (tripTime - now) / 60000;
+            if (diff < 0) diff += 24 * 60;
+        }
+
+        return Math.round(diff);
+    }
+
+    function updateclock() {
+        const now = new Date();
+        const daysWeek = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+        const dayString = daysWeek[now.getDay()];
+        document.getElementById("Day").textContent = dayString;
+
+        // Build schedule based on day
+        let schedule, elementIds;
+
+        if(dayString === "Saturday" || dayString === "Sunday"){
+            schedule = [
+                {time: feature.properties.dir2FirstWE, isLast: false , direction: feature.properties.direction2, station: feature.properties.station2},
+                {time: feature.properties.dir1FirstWE, isLast: false, direction: feature.properties.direction1, station: feature.properties.station1},
+                {time: feature.properties.dir1LastWE, isLast: true,  direction: feature.properties.direction1, station: feature.properties.station1},
+                {time: feature.properties.dir2LastWE, isLast: true, direction: feature.properties.direction2, station: feature.properties.station2}
+            ];
+            elementIds = ["dir2FirstTrip","dir1FirstTrip","dir1LastTrip","dir2LastTrip"];
+        } else {
+            schedule = [
+                {time: feature.properties.dir2FirstWD, isLast: false, direction: feature.properties.direction2, station: feature.properties.station2},
+                {time: feature.properties.dir1FirstWD, isLast: false, direction: feature.properties.direction1, station: feature.properties.station1},
+                {time: feature.properties.dir1LastWD, isLast: true , direction: feature.properties.direction1, station: feature.properties.station1},
+                {time: feature.properties.dir2LastWD, isLast: true, direction: feature.properties.direction2, station: feature.properties.station2}
+            ];
+            elementIds = ["dir2FirstTrip","dir1FirstTrip","dir1LastTrip","dir2LastTrip"];
+        }
+
+        let timeCompare = [];
+
+        // Fill schedule display and compute time differences
+        for (let i = 0; i < schedule.length; i++){
+            const time12 = to12Hour(schedule[i].time);
+            document.getElementById(elementIds[i]).textContent = time12;
+            timeCompare.push(timeCalc(schedule[i].time, schedule[i].isLast, schedule[i].direction, schedule[i].station));
+        }
+
+        // Find next trip within the day
+        let timeComp = 1440; // max minutes in a day
+        let elementNumber = -1;
+
+        for (let i = 0; i < timeCompare.length; i++){
+            if (timeCompare[i] >= 0 && timeCompare[i] < timeComp){
+                timeComp = timeCompare[i];
+                elementNumber = i;
+            }
+        }
+
+        const alertDiv = document.querySelector(".alert");
+
+            if (elementNumber === -1 || timeComp > 60) {
+                // No trips within 60 minutes, hide alert
+                alertDiv.style.display = "none";
+                return;
+            }
+
+        alertDiv.style.display = "block";
+        document.getElementById("minutesRemaining").textContent = timeComp + " minutes";
+
+            if(schedule[elementNumber].isLast){
+                const currentTrip = schedule[elementNumber];
+                document.getElementById("textDescription").textContent = "The last trip is occurring in ";
+                document.getElementById("warnDirection").textContent = currentTrip.direction + " ";
+                document.getElementById("warnStation").textContent = "(to " + currentTrip.station + "): " ;
+                alertDiv.className = timeComp <= 30 ? "alert alert-warning" : "alert alert-info";
+            } else {
+                const currentTrip = schedule[elementNumber];
+                document.getElementById("textDescription").textContent = "The first trip is occurring in ";
+                document.getElementById("warnDirection").textContent = currentTrip.direction + " ";
+                document.getElementById("warnStation").textContent = "(to " + currentTrip.station + "): " ;
+                alertDiv.className = timeComp <= 30 ? "alert alert-success" : "alert alert-info";
+            }
+    }
+
+    function startClockUpdates() {
+        updateclock(); // run immediately
+        const now = new Date();
+        const msToNextMinute = (60 - now.getSeconds()) * 1000;
+
+        setTimeout(() => {
+            updateclock(); // update at next full minute
+            setInterval(updateclock, 60 * 1000);
+        }, msToNextMinute);
+    }
+
+    startClockUpdates();
+        /*
+        function updateclock() {
+                const now = new Date();
+                let dateWeek = now.getDay();
+                const daysWeek = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+                const dayString = daysWeek[dateWeek];
+                let timeCompare = [];
+
+                function to12Hour(time24) {
+                    if (!time24) return "";
+
+                    // handle formats like "5:00", "05:00", "17:30", etc.
+                    const [hourStr, minute] = time24.split(":");
+                    let hour = parseInt(hourStr, 10);
+
+                    const ampm = hour >= 12 ? "PM" : "AM";
+                    hour = hour % 12 || 12; // converts "0" to "12"
+
+                    return `${hour}:${minute} ${ampm}`;
+                }
+
+                function timeCalc(timeStr){
+                    const [h, m] = timeStr.split(':').map(Number);
+
+                    const last = new Date();
+                    last.setHours(h, m, 0, 0);
+
+                    const now = new Date();
+
+                    let diff = (last - now) / 60000; // difference in minutes
+                    diff = Math.round(diff);          // round to nearest minute
+                    return diff;          
+
+                }
+                    document.getElementById("Day").textContent = dayString;
+
+                if(dayString == "Saturday" || dayString == "Sunday"){
+                    const weekendSched = [feature.properties.dir2FirstWE, feature.properties.dir1FirstWE, feature.properties.dir1LastWE, feature.properties.dir2LastWE];
+                    const elementIds = ["dir2FirstTrip","dir1FirstTrip","dir1LastTrip","dir2LastTrip"];
+                    timeCompare = [];
+
+                    for (let i = 0; i<weekendSched.length; i++){
+                        const time12 = to12Hour(weekendSched[i]);
+                        document.getElementById(elementIds[i]).textContent = time12;
+                        const timeConvert = timeCalc(weekendSched[i]);
+                        timeCompare.push(timeConvert); 
+                    }
+                    // convert here, gawing array smthn yung lahat ng propertiies, and then for loop to convert all, tsaka ipapasok getElement
+                } else{
+                    const weekdaySched = [feature.properties.dir2FirstWD, feature.properties.dir1FirstWD, feature.properties.dir1LastWD, feature.properties.dir2LastWD,];
+                    const elementIds = ["dir2FirstTrip","dir1FirstTrip","dir1LastTrip","dir2LastTrip"]
+
+                    for (let i = 0; i<weekdaySched.length; i++){
+                        const time12 = to12Hour(weekdaySched[i]);
+                        document.getElementById(elementIds[i]).textContent = time12;
+                        const timeConvert = timeCalc(weekdaySched[i]);
+                        timeCompare.push(timeConvert); 
+                    }
+                }
+           
+            let timeComp = 1440;
+            let elementNumber = 0;
+        for (let i=0; i < timeCompare.length; i++){
+            if (timeCompare[i] < timeComp && timeCompare[i] > 0){
+                timeComp = timeCompare[i];
+                elementNumber = i;
+            }
+        }
+
+        const alertDiv = document.querySelector(".alert");
+
+        if(elementNumber >= 2){
+            if ((timeComp <= 60 &&  timeComp > 30)){
+                alertDiv.style.display = "block";
+                document.getElementById("textDescription").textContent = "The last trip is occuring in ";
+                document.getElementById("minutesRemaining").textContent = timeComp + " minutes";
+                alertDiv.className = "alert alert-info";
+            }
+            else if (timeComp <= 30 && timeComp >= 0 ) {
+                alertDiv.style.display = "block";
+                document.getElementById("textDescription").textContent = "The last trip is occuring in ";
+                document.getElementById("minutesRemaining").textContent = timeComp + " minutes";
+                alertDiv.className = "alert alert-warning";
+            }
+        } else if (elementNumber <2) {
+            if ((timeComp <= 60 &&  timeComp > 30)){
+                alertDiv.style.display = "block";
+                document.getElementById("textDescription").textContent = "First Trip is occuring in ";
+                document.getElementById("minutesRemaining").textContent = timeComp + " minutes";
+                alertDiv.className = "alert alert-info";
+            }
+            else if (timeComp <= 30 && timeComp >= 0 ) {
+                alertDiv.style.display = "block";
+                document.getElementById("textDescription").textContent = "First Trip is occuring in ";
+                document.getElementById("minutesRemaining").textContent = timeComp + " minutes";
+                alertDiv.className = "alert alert-success";
+            }
+        } else if (timeComp > 60){
+                alertDiv.style.display = "none";
+            }
+       
+    }
+        function startClockUpdates() {
+                updateclock(); // run immediately when page loads
+
+                const now = new Date();
+                const msToNextMinute = (60 - now.getSeconds()) * 1000;
+
+                // First timer: wait until the next full minute
+                setTimeout(() => {
+
+                    updateclock(); // update at the exact minute mark
+
+                    // Then repeat every minute
+                    setInterval(updateclock, 60 * 1000);
+
+                }, msToNextMinute);
+            }
+        
+        startClockUpdates();
+
+       */
+       
+        var map = L.map('map',{
+                maxZoom : 20, minZoom:14
+            }).setView([14.65326, 121.06556],14); //Lat,Long
+            var osm = L.tileLayer('https://api.maptiler.com/maps/openstreetmap/{z}/{x}/{y}.jpg?key=SWY8Y7O6LPQ23yZsBTCR', {
+                minZoom: 0,
+	            maxZoom: 20,
+                attribution: '<a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>' 
+            }).addTo(map);
+            var Stadia_Outdoors = L.tileLayer('https://tiles.stadiamaps.com/tiles/outdoors/{z}/{x}/{y}{r}.{ext}', {
+	            minZoom: 0,
+	            maxZoom: 20,
+	            attribution: '&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	            ext: 'png'
+            });
+            var CyclOSM = L.tileLayer('https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png', {
+	            maxZoom: 20,
+	            attribution: '<a href="https://github.com/cyclosm/cyclosm-cartocss-style/releases" title="CyclOSM - Open Bicycle render">CyclOSM</a> | Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            });
+            var Esri_WorldImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                minZoom: 0,
+	            maxZoom: 20,
+	            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+            });
+             var basemaps = {'OpenStreetMap': osm, 'Outdoors': Stadia_Outdoors, 'Cycle': CyclOSM, 'Satellite': Esri_WorldImagery}
+        //var overlayMaps = {'Map Data': mapdata}
+        var overlayMaps = {};
+        L.control.layers(basemaps, overlayMaps).addTo(map);
+
+        if (feature.geometry) {
+            const featureLayer = L.geoJSON(feature, {
+                pointToLayer: function (geoJsonPoint, latlng) {
+                    return L.marker(latlng);
+                }
+            }).addTo(map);
+
+            map.fitBounds(featureLayer.getBounds());
+        } else if (feature.coordinates) {
+            // fallback if your feature only has coordinates
+            const marker = L.marker([feature.coordinates[1], feature.coordinates[0]]).addTo(map);
+            map.setView([feature.coordinates[1], feature.coordinates[0]], 16);
+        } else {
+            map.setView([14.65326, 121.06556], 14); // default view
+        }
+
+        });
+        
+        
+
+        //var mapdata = L.geoJSON(mapdata).addTo(map);
+
+        //Leaflet Layer Control
+       /*
+            // it works L.geoJSON(geoJSONsamp).addTo(map);
+            L.geoJSON(geoJSONsamp).bindPopup(function(layer){
+                return layer.feature.properties.building
+            }).addTo(map);
+
+            L.geoJSON(PantrancoSample).bindPopup(function(layer){
+                return layer.feature.properties.name
+            }).addTo(map);
+                 L.geoJSON(RailwaysString).bindPopup(function(layer){
+            }).addTo(map);        
+
+            */
+            //GeoJSON data
+            //Leaflet Layer Control
+
+        
+
+    </script>
+    </body>
+</html>

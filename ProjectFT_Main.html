@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+        <link rel="stylesheet" href="mapstyler.css">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+        <link rel="stylesheet" href="FT_mainpage.css">
+            <meta charset="UTF-8">  
+            <meta http-equiv="X-UA-Compatible" content="IE=edge">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Last Trip Na Ba?</title>
+    </head>
+    <body>
+        <nav id="topbar" class="navbar navbar-expand-lg navbar-dark bg-primary">
+            <a class="navbar-brand" href="#">Project FirstTrip</a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+                <div class="navbar-nav">
+                <a class="nav-item nav-link active" href="#">Search</a>
+                <a class="nav-item nav-link" href="#">Route Maps</a>
+                <a class="nav-item nav-link" href="#">Route Table</a>
+                <a class="nav-item nav-link" href="#">Terminals</a>
+                <a class="nav-item nav-link" href="#">Contribute</a>
+                <a class="nav-item nav-link" href="#">Support</a>
+                </div>
+            </div>
+            </nav>
+<!--
+        <nav id="topbar">
+            <p style="font-family: Verdana, Geneva, Tahoma, sans-serif; color:white; margin-left:0.5%">Last Trip na ba?</p>
+        </nav>
+        -->
+        <div class="TripFinder">
+            <p style="font-size:40px; font-weight:bold; text-align:center"> Find your trip </p>
+        </div>
+        
+    <!-- SEARCH WRAPPER -->
+    <div class="search-wrapper">
+        <div class="inputrow">
+        <input id="searchbar" type="text" placeholder="Search stations or routes" data-search>
+        <select id="transportType" data-transportType>
+            <option value="" selected disabled hidden>Filter by Transport Type</option>
+            <option value="train">Train</option>
+            <option value="bus">Bus</option>
+            <option value="jeep">Jeep</option>
+        </select>
+        </div>
+        <div class="suggestionbox" data-box></div>
+        <template class="Suggestion" data-suggestion>
+        <div data-suggestion-item class="Suggestions">
+            <div class="Name" data-featureName></div>
+            <div class="FeatureType" data-featureType></div>
+        </div>
+    </template>
+    </div>
+
+    <div id="upperContent">
+        <div id="leftSide">
+            <div id="container">
+                <div id="clock">
+                <span id="time">00:00:00 AM </span><br>
+                <span id="date">The date today</span><br>
+                <span id="day">Seven Days of the Week</span>
+                </div>
+            </div>
+            <div id="Announcements">
+                <span class="featuresName">Announcements</span>
+            </div>
+        </div>
+            <div id="allFeatures">
+                <div class="featuresBox">
+                    <div class="featuresName">Terminals</div><br>
+                    <div class="featuresLabel"><i>View all routes available in select terminals</i></div>
+                </div>
+                <div class="featuresBox">
+                    <div class="featuresName">Search via Map</div><br>
+                    <div class="featuresLabel"><i>Look for your routes and information using a map</i></div>
+                </div>
+                <div class="featuresBox">
+                    <div class="featuresName">View Stations & Routes</div><br>
+                    <div class="featuresLabel"><i>View all stations and routes using a table</i></div>
+                </div>
+                <div class="featuresBox">
+                    <div class="featuresName">Contribute</div><br>
+                    <div class="featuresLabel"><i>Log-in and contribute trip details</i></div>
+                </div>
+        </div>
+    </div>
+    <div id="lowerContent">
+        <div>
+        <p class="suggestions" style="text-align:center; font-family:'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif"> For your suggestions:</p>
+        <form style="text-align:center">
+            <label>Name</label><br>
+            <input type="text" placeholder="Kira"><br>
+            <br>
+            <label>Suggestion</label><br>
+            <textarea></textarea>
+        </form>
+        </div>
+    </div>
+        <script src="FT_tripsGeoJSON.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                
+            const timeZone = 'Asia/Manila';
+            function updateclock() {
+                const now = new Date();
+                let dateWeek = now.getDay();
+                const daysWeek = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+                const dayString = daysWeek[dateWeek];
+
+                const options = {
+                    timeZone: timeZone,
+                    hour12: true,
+                    hour:'2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                };
+
+                const options2 = {
+                    year:'numeric',
+                    month:'long',
+                    day:'2-digit'
+                };
+
+                const timeString = now.toLocaleTimeString('en-US', options);
+                const dateString = now.toLocaleDateString('en-US', options2);
+                document.querySelector('#time').textContent = timeString;
+                document.querySelector('#date').textContent = dateString;
+                document.querySelector("#day").textContent = dayString;
+            } 
+
+            updateclock();
+            setInterval(updateclock,1000);
+            
+            const featuresBoxes = document.querySelectorAll(".featuresBox");
+
+            featuresBoxes.forEach(box => {
+                box.addEventListener("mouseover", () => {
+                    box.classList.add("suggestion-hover");
+                });
+
+                box.addEventListener("mouseout", () => {
+                    box.classList.remove("suggestion-hover");
+                });
+            });
+
+            const allGeoJSON = [geoJSONsamp, PantrancoSample, RailwaysString];
+            const suggestiondict = [];
+            const suggestionTemp = document.querySelector("[data-suggestion]")
+            const SelectionLayer = L.layerGroup();
+            const container = document.querySelector("[data-box]")
+            const search = document.querySelector("[data-search]")
+            const transportFilter = document.querySelector("[data-transportType]");
+
+            //study what dispatchEvent is
+            transportFilter.addEventListener("change", () => {
+                 search.dispatchEvent(new Event("input"));
+            });
+            
+            for (i=0; i< allGeoJSON.length; i++ )  {
+                    const GeoJSONdata = allGeoJSON[i];
+                    if(GeoJSONdata.type === "FeatureCollection" && Array.isArray(GeoJSONdata.features)){
+                        for(j=0; j < GeoJSONdata.features.length; j++){
+                            const features = GeoJSONdata.features[j];
+                            const name = features.properties?.name;
+                            const type = features.properties?.type;
+                            const LastTripTime = features.properties?.LastTripTime;
+                            const transportType = features.properties?.transportType;
+                            const geometry = features.geometry?.coordinates;
+                            const system = features.properties?.System;
+                            const direction1 = features.properties?.direction1;
+                            const direction2 = features.properties?.direction2;
+                            const station1 = features.properties?.station1;
+                            const station2 = features.properties?.station2;
+                            const dir1FirstTripWD = features.properties?.dir1FirstWD;
+                            const dir2FirstTripWD = features.properties?.dir2FirstWD;
+                            const dir1LastTripWD = features.properties?.dir1LastWD;
+                            const dir2LastTripWD = features.properties?.dir2LastWD;
+                            const dir1FirstTripWE = features.properties?.dir1FirstWE;
+                            const dir2FirstTripWE = features.properties?.dir2FirstWE;
+                            const dir1LastTripWE = features.properties?.dir1LastWE;
+                            const dir2LastTripWE = features.properties?.dir2LastWE;
+
+
+                            if(name){
+                                suggestiondict.push({
+                                    name : name,
+                                    type : type,
+                                    LastTripTime : LastTripTime,
+                                    transportType : transportType?.toLowerCase(),
+                                    geom : geometry,
+                                    routeName : system,
+                                    dir1FirstTripWD : dir1FirstTripWD,
+                                    dir2FirstTripWD : dir2FirstTripWD,
+                                    dir1LastTripWD : dir1LastTripWD,
+                                    dir2LastTripWD : dir2LastTripWD, 
+                                    dir1FirstTripWE : dir1FirstTripWE,
+                                    dir2FirstTripWE : dir2FirstTripWE,
+                                    dir1LastTripWE : dir1LastTripWE,
+                                    dir2LastTripWE : dir2LastTripWE
+                                });
+                            }
+                        }
+                    
+                }
+            }
+            
+        search.addEventListener("input", e => {
+            const inputValue = e.target.value.toLowerCase();
+            const transportTypeVal = transportFilter.value;
+
+            const filtered = suggestiondict.filter(feature => {
+
+            const matchesText =
+                feature.name?.toLowerCase().includes(inputValue) ||
+                feature.type?.toLowerCase().includes(inputValue);
+
+            const matchesTransport =
+                transportTypeVal === "" || feature.transportType === transportTypeVal;
+
+            return matchesText && matchesTransport;
+            });
+
+            const limited = filtered.slice(0, 5);
+            container.innerHTML = "";
+
+            if(document.getElementById("searchbar").value == "") { 
+                document.querySelector(".suggestionElement").innerHTML = ""; 
+                }
+
+            for (const feature of limited) {
+                const suggest = suggestionTemp.content.cloneNode(true);
+                const ftName = suggest.querySelector("[data-featureName]");
+                const ftType = suggest.querySelector("[data-featureType]");
+
+                ftName.textContent = feature.name;
+                ftType.textContent = feature.type;
+
+                const suggestionElement = suggest.querySelector("[data-suggestion-item]");
+
+                suggestionElement.addEventListener("mouseover", () =>
+                    suggestionElement.classList.add("suggestion-hover")
+                );
+
+                suggestionElement.addEventListener("mouseout", () =>
+                    suggestionElement.classList.remove("suggestion-hover")
+                );
+
+                suggestionElement.addEventListener("click", () => {
+                    container.innerHTML = "";
+                    search.value = "";
+                    SelectionLayer.clearLayers();
+
+                    let searchedFeatures = null;
+
+                    for (const geo of allGeoJSON) {
+                        searchedFeatures = geo.features.find(f => f.properties.name === feature.name);
+                        if (searchedFeatures) break;
+                    }
+
+                    // If not found in original GeoJSON, reconstruct a GeoJSON feature
+                    if (!searchedFeatures) {
+                        searchedFeatures = {
+                            type: "Feature",
+                            geometry: { type: "Point", coordinates: feature.geom },
+                            properties: {
+                                name: feature.name,
+                                type: feature.type,
+                                System: feature.routeName,
+                                direction1: feature.dir1FirstTripWD ? feature.dir1FirstTripWD : "",
+                                direction2: feature.dir2FirstTripWD ? feature.dir2FirstTripWD : "",
+                                station1: feature.station1,
+                                station2: feature.station2,
+                                dir1FirstWD: feature.dir1FirstTripWD,
+                                dir2FirstWD: feature.dir2FirstTripWD,
+                                dir1LastWD: feature.dir1LastTripWD,
+                                dir2LastWD: feature.dir2LastTripWD,
+                                dir1FirstWE: feature.dir1FirstTripWE,
+                                dir2FirstWE: feature.dir2FirstTripWE,
+                                dir1LastWE: feature.dir1LastTripWE,
+                                dir2LastWE: feature.dir2LastTripWE,
+                            }
+                        };
+                    }
+
+                    localStorage.setItem("searchedFeatures", JSON.stringify(searchedFeatures));
+                    window.location.href = "tripinfo.html?name=" + encodeURIComponent(searchedFeatures.properties.name);
+                });
+                 container.appendChild(suggest); 
+            }});
+
+            if (filtered.length === 0 && inputValue.trim() !== "") {
+                const noMatch = document.createElement("div");
+                noMatch.textContent = "No results found.";
+                noMatch.style.padding = "5px";
+                container.appendChild(noMatch);
+            }
+        });
+
+        </script>
+    </body>
+</html>
