@@ -1,0 +1,177 @@
+            body {
+                background-color: rgb(234, 237, 243);
+            }
+
+            #topbar{
+                overflow: hidden; 
+                height:12.5%; 
+                width:100%;
+                gap: 10px;
+            }
+
+            #map {
+                width: 80%; 
+                height: 500px;
+            }
+
+            #time {
+                font-size:50px; 
+                font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+                text-align: center; 
+                font-weight:bold;
+            }
+
+            #container {
+                display: flex; 
+                text-align:center; 
+                max-width:100%; 
+                background-color: rgb(226, 235, 236);
+                padding: 30px; 
+                border-radius: 8px;
+            }
+
+            #date {
+                font-size:30px; 
+                font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+                text-align: center; 
+                font-style: oblique; 
+                margin-top:-50px;
+            }
+
+            .TripFinder {
+                font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                display: block;
+                margin-top:2%;
+            }
+
+            #upperContent {
+                display: flex;
+                justify-content: center;
+                align-items: flex-start;
+                gap: 2% ;
+                width: 80%;
+                margin: 40px auto;
+                box-sizing: border-box;
+                }
+
+            #leftSide {
+                display: flex;
+                flex-direction: column;   /* ← stack clock and announcements */
+                gap: 10px;
+                max-width: 100%;
+            }
+
+            #Announcements {
+                background-color: rgb(226, 235, 236);
+                padding: 20px;
+                border-radius: 8px;
+            }
+
+            .search-wrapper {
+                width: 50%;
+                margin: 0 auto;
+                position: relative;
+                display: flex;
+                flex-direction: column;
+                gap: 0;
+                }
+
+            /* FLEX ROW to align search bar + select */
+            .inputrow {
+                display: flex;
+                gap: 30px;
+            }
+
+            /* Search bar takes more space */
+            #searchbar {
+                flex: 1;
+                height: 45px;
+                background-color: rgb(226, 235, 236);
+                border-radius: 8px;
+                padding: 8px 12px;
+                font-size: 18px;
+                border: 1px solid #aaa;
+                box-sizing: border-box;
+                width:60%
+            }
+
+            /* Select box styled to match height */
+            #transportType {
+                height: 45px;
+                font-size: 16px;
+                border-radius: 8px;
+                padding: 5px 8px;
+                border: 1px solid #aaa;
+                background-color: rgb(226, 235, 236);
+                cursor: pointer;
+                width:15%;
+            }
+
+            /* Suggestion box stays below the whole row */
+            .suggestionbox {
+                max-height: 250px;      
+                overflow-y: auto;
+                margin-top: 2px; 
+                background: rgb(226, 235, 236);
+                border: 1px solid #ccc;
+                border-top: none;
+                border-radius: 0 0 8px 8px;
+                z-index: 999;
+                transition: max-height 0.2s ease;
+            }
+            .featuresBox{
+                border: 2px solid #333;
+                padding: 10px;
+                border-radius: 8px;
+                text-align:left;
+                display: flex;
+                flex-direction: column;       /* ← allows wrapping */
+                gap: 2px;
+                width: 100%;
+                box-sizing: border-box;   
+                }
+
+            .featuresName {
+                font-size: 2rem;
+                font-weight: bold;
+                margin-bottom: 6px;
+                }
+
+                /* LABEL */
+            .featuresLabel {
+                font-size: 1.2rem;
+                color: #555;
+                }
+
+            #allFeatures{
+                display: flex;
+                flex-direction: column;
+                flex: 1;
+                justify-content: center;
+                gap:10px;
+                font-family:'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+                background-color: rgb(226, 235, 236);padding: 16px; border-radius: 8px;
+                max-width:80%;
+            }
+
+            .suggestion-hover { 
+                background-color: #e6f2ff; /* light highlight */ 
+                cursor: pointer; } 
+
+            #searchbar { 
+                width: 100%; /* fill wrapper */ 
+                height: 45px; 
+                background-color: rgb(226, 235, 236); 
+                border-radius: 8px; 
+                padding: 8px 12px; 
+                font-size: 18px; 
+                border: 1px solid #aaa; 
+                box-sizing: border-box; 
+            }
+            #lowerContent{
+                overflow: hidden; 
+                background-color:rgb(84, 145, 196); 
+                height: 200px; 
+                width: 100%;
+                margin-top:auto;
+            }
