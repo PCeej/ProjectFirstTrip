@@ -109,7 +109,7 @@
             #map {
                 flex: 1 1 auto;        /* ← grows to fill remaining height */
                 width: 100%;
-                min-height:200px;
+                min-height:375px;
                 
             }
            
@@ -146,6 +146,11 @@
                 background-color: rgb(226, 235, 236);padding: 16px; border-radius: 8px;
                 max-width:50%;
             }
+
+            .nearTerminalsList:hover { 
+                background-color: #e6f2ff; /* light highlight */ 
+                cursor: pointer; } 
+
 
         </style>
     </head>
@@ -197,13 +202,18 @@
                 </div>
             </div>
             
-            <div id="nearTerminals">
-                <span style="font-size:30px; font-family:'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;">Close-by Terminals</span>
+            <template id="terminalTemplate">
                 <div class="nearTerminalsList">
-                    <div class="terminalsName">TerminalName</div>
-                    <div class="terminalsDist"><i>100m</i></div>
-                    <!-- <div class="terminalAddr"></div> -->
+                    <div class="terminalsName"></div>
+                    <div class="terminalsDist"><i></i></div>
                 </div>
+            </template>
+
+            <div id="nearTerminals" style="margin-top:10px">
+                <span id="nearbyTerminals" style="font-size:30px;">
+                    Terminals
+                </span>
+                <div id="trialTerminals"></div>
             </div>
         </div>
     <script>
@@ -394,7 +404,7 @@
             });
         });
 
-        const maxDistance = 600; // meters
+        const maxDistance = 750; // meters
 
         const closeTerminals = terminalsData.filter(t => {
             const distance = map.distance(featureLatLng, t.latlng);
@@ -405,39 +415,53 @@
 
         closeTerminals.sort((a, b) => a.straightDistance - b.straightDistance);
 
-        const container = document.getElementById("nearTerminals");
-        container.innerHTML = "";
+        const container = document.getElementById("trialTerminals");
+        const template = document.getElementById("terminalTemplate");
 
-        let activeRouteControl = null;
+        container.replaceChildren(); 
 
-        if (closeTerminals.length > 0) {
-            closeTerminals.forEach(terminal => {
-                const terminalDiv = document.createElement("div");
-                terminalDiv.classList.add("nearTerminalsList");
+        closeTerminals.forEach(terminal => {
+            
+            const clone = template.content.cloneNode(true);
 
-                const nameDiv = document.createElement("div");
-                nameDiv.classList.add("terminalsName");
-                nameDiv.textContent = terminal.name;
+            const terminalDiv = clone.querySelector(".nearTerminalsList");
+            const nameDiv = clone.querySelector(".terminalsName");
+            const distDiv = clone.querySelector(".terminalsDist i");
 
-                const distDiv = document.createElement("div");
-                distDiv.classList.add("terminalsDist");
-                distDiv.innerHTML = `<i>${terminal.straightDistance} m</i>`;
+            nameDiv.textContent = terminal.name;
+            distDiv.textContent = `${Math.round(terminal.straightDistance)} m`;
+            let currentRouteControl = null;
 
-                terminalDiv.appendChild(nameDiv);
-                terminalDiv.appendChild(distDiv);
-                container.appendChild(terminalDiv);
+                terminalDiv.addEventListener("click", (e) => {
+                      if (currentRouteControl) {
+                           map.removeControl(currentRouteControl);
+                        }
 
-                terminalDiv.addEventListener("click", () => {
-                    if (activeRouteControl) map.removeControl(activeRouteControl);
-                    activeRouteControl = L.Routing.control({
-                        waypoints: [featureLatLng, terminal.latlng]
+                    currentRouteControl = L.Routing.control({
+                        waypoints:[featureLatLng,terminal.latlng],
+                        fitSelectedRoutes: true,
+                        addWaypoints: false,
+                        draggableWaypoints: false
+                        
+                        //currently displaying road distance
+                        /*
+                        // according to the internet, wala na MapZen, change to GraphHopper to create new API
+                        waypointMode: 'snap',
+                        router: new L.Routing.Mapzen('valhalla-apikey', 'pedestrian'),
+                        formatter: new L.Routing.Mapzen.Formatter()   
+
+                        //suggested by chatGPT format for GraphHopper
+                        L.Routing.control({
+                            router: L.Routing.graphHopper('YOUR_API_KEY'),
+                            waypoints: [start, end]
+                            vehicle: foot
+                            }).addTo(map);
+                        */
                     }).addTo(map);
-                });
+                })
 
-            });
-        } else {
-            container.innerHTML = "No nearby terminals";
-        }
+            container.appendChild(clone);
+        });
     });
         
 
