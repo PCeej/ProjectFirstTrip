@@ -4,14 +4,17 @@
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
         <link rel="stylesheet" href="mapstyler.css">
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+        <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+        <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.min.js"></script>
         <script src="FT_terminalsGeoJSON.js"></script>
         <style>
             .allSearch { 
                 width:75%; 
                 margin: 0 auto; 
                 position: relative; 
+                gap: 10px;
             } 
              #firstInfo { 
                 display: flex;          /* align items in one row */
@@ -110,6 +113,40 @@
                 
             }
            
+             .nearTerminalsList{
+                border: 2px solid #333;
+                padding: 10px;
+                border-radius: 8px;
+                text-align:left;
+                display: flex;
+                flex-direction: column;       /* ← allows wrapping */
+                gap: 2px;
+                width: 100%;
+                box-sizing: border-box;   
+                }
+
+            .terminalsName {
+                font-size: 2rem;
+                font-weight: bold;
+                margin-bottom: 6px;
+                }
+
+            .terminalsDist {
+                font-size: 1.2rem;
+                color: #555;
+                }
+
+            #nearTerminals{
+                display: flex;
+                flex-direction: column;
+                flex: 1;
+                justify-content: center;
+                gap:10px;
+                font-family:'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+                background-color: rgb(226, 235, 236);padding: 16px; border-radius: 8px;
+                max-width:50%;
+            }
+
         </style>
     </head>
     <body>
@@ -155,11 +192,19 @@
                     </div>
                 </div>
                 <div id="mapWrap">
-                    <span style="font-size:20px; font-family:'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;">Map</span>
+                    <span style="font-size:30px; font-family:'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;">Map</span>
                     <div id="map"></div>
                 </div>
             </div>
-                
+            
+            <div id="nearTerminals">
+                <span style="font-size:30px; font-family:'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;">Close-by Terminals</span>
+                <div class="nearTerminalsList">
+                    <div class="terminalsName">TerminalName</div>
+                    <div class="terminalsDist"><i>100m</i></div>
+                    <!-- <div class="terminalAddr"></div> -->
+                </div>
+            </div>
         </div>
     <script>
         
@@ -440,48 +485,178 @@
         //var overlayMaps = {'Map Data': mapdata}
         var overlayMaps = {};
         L.control.layers(basemaps, overlayMaps).addTo(map);
+           
+        let featureLatLng = null;
 
-        if (feature.geometry) {
-            const featureLayer = L.geoJSON(feature, {
-                pointToLayer: function (geoJsonPoint, latlng) {
-                    return L.marker(latlng);
+            if (feature.geometry) {
+                const featureLayer = L.geoJSON(feature).addTo(map);
+
+                if (feature.geometry.type === "Point") {
+                    featureLatLng = L.latLng(feature.geometry.coordinates[1], feature.geometry.coordinates[0]);
+                } else {
+                    featureLatLng = featureLayer.getBounds().getCenter();
                 }
-            }).addTo(map);
 
-            map.fitBounds(featureLayer.getBounds());
-        } else if (feature.coordinates) {
-            // fallback if your feature only has coordinates
-            const marker = L.marker([feature.coordinates[1], feature.coordinates[0]]).addTo(map);
-            map.setView([feature.coordinates[1], feature.coordinates[0]], 16);
-        } else {
-            map.setView([14.65326, 121.06556], 14); // default view
-        }
+                map.fitBounds(featureLayer.getBounds());
+            } else {
+                featureLatLng = L.latLng(14.65326, 121.06556);
+                map.setView(featureLatLng, 14);
+            }
+        
+        let terminalsData = []
+        const terminalsLayer = L.geoJSON(terminals);
+       
+        terminalsLayer.eachLayer(function (layer) { 
+            const centroid = layer.getBounds().getCenter();
+            const name = layer.feature.properties.name;
 
+            terminalsData.push({
+                name: name,
+                latlng: centroid
+            });
         });
+
+        const maxDistance = 600; // meters
+
+        const closeTerminals = terminalsData.filter(t => {
+            const distance = map.distance(featureLatLng, t.latlng);
+            t.straightDistance = distance; // store it for display
+            console.log(distance);
+            return distance <= maxDistance;
+        });
+
+        closeTerminals.sort((a, b) => a.straightDistance - b.straightDistance);
+
+        const container = document.getElementById("nearTerminals");
+        container.innerHTML = "";
+
+        let activeRouteControl = null;
+
+        if (closeTerminals.length > 0) {
+            closeTerminals.forEach(terminal => {
+                const terminalDiv = document.createElement("div");
+                terminalDiv.classList.add("nearTerminalsList");
+
+                const nameDiv = document.createElement("div");
+                nameDiv.classList.add("terminalsName");
+                nameDiv.textContent = terminal.name;
+
+                const distDiv = document.createElement("div");
+                distDiv.classList.add("terminalsDist");
+                distDiv.innerHTML = `<i>${terminal.straightDistance} m</i>`;
+
+                terminalDiv.appendChild(nameDiv);
+                terminalDiv.appendChild(distDiv);
+                container.appendChild(terminalDiv);
+
+                terminalDiv.addEventListener("click", () => {
+                    if (activeRouteControl) map.removeControl(activeRouteControl);
+                    activeRouteControl = L.Routing.control({
+                        waypoints: [featureLatLng, terminal.latlng]
+                    }).addTo(map);
+                });
+
+            });
+        } else {
+            container.innerHTML = "No nearby terminals";
+        }
+    });
         
+
+        /* code works thanks to chatgpt, but server fails, will exchange for a simpler one
+            let featureLatLng = null;
+
+            if (feature.geometry) {
+                const featureLayer = L.geoJSON(feature).addTo(map);
+
+                if (feature.geometry.type === "Point") {
+                    featureLatLng = L.latLng(feature.geometry.coordinates[1], feature.geometry.coordinates[0]);
+                } else {
+                    featureLatLng = featureLayer.getBounds().getCenter();
+                }
+
+                map.fitBounds(featureLayer.getBounds());
+            } else {
+                featureLatLng = L.latLng(14.65326, 121.06556);
+                map.setView(featureLatLng, 14);
+            }
+
+            console.log(featureLatLng);
+
+            function getRouteDistance(start, end) {
+                return new Promise((resolve, reject) => {
+                    const router = L.Routing.osrmv1();
+                    router.route([start, end], (err, routes) => {
+                        if (err) return reject(err);
+                        resolve(routes[0].summary.totalDistance);
+                    });
+                });
+            }
+
+            async function calculateAndShowTerminals(featureLatLng, terminalsData) {
+                const terminalDistances = [];
+
+                await Promise.all(terminalsData.map(async t => {
+                    try {
+                        const distance = await getRouteDistance(featureLatLng, t.latlng);
+                        terminalDistances.push({ ...t, distance });
+                    } catch {
+                        console.warn(`Could not calculate route to ${t.name}`);
+                    }
+                }));
+            
+                console.log(terminalDistances);
+                
+                const closeTerminals = terminalDistances
+                    .filter(d => d.distance <= 1000)
+                    .sort((a, b) => a.distance - b.distance);
+
+                const container = document.getElementById("nearTerminals");
+                container.innerHTML = "";
+
+                let activeRouteControl = null;
+
+                if (closeTerminals.length > 0) {
+                    closeTerminals.forEach(terminal => {
+                        const terminalDiv = document.createElement("div");
+                        terminalDiv.classList.add("nearTerminalsList");
+
+                        const nameDiv = document.createElement("div");
+                        nameDiv.classList.add("terminalsName");
+                        nameDiv.textContent = terminal.name;
+
+                        const distDiv = document.createElement("div");
+                        distDiv.classList.add("terminalsDist");
+                        distDiv.innerHTML = `<i>${terminal.distance} m</i>`;
+
+                        terminalDiv.appendChild(nameDiv);
+                        terminalDiv.appendChild(distDiv);
+                        container.appendChild(terminalDiv);
+
+                        terminalDiv.addEventListener("click", () => {
+                            if (activeRouteControl) map.removeControl(activeRouteControl);
+                            activeRouteControl = L.Routing.control({ 
+                                waypoints: [featureLatLng, terminal.latlng]
+                            }).addTo(map);
+                        });
+                    });
+                } else {
+                    container.innerHTML = "No nearby terminals";
+                }
+            }
+
+            // Make sure terminals GeoJSON exists
+            const terminalsLayer = L.geoJSON(terminals).addTo(map);
+            const terminalsData = [];
+            terminalsLayer.eachLayer(layer => {
+                const latlng = layer.getLatLng ? layer.getLatLng() : layer.getBounds().getCenter();
+                terminalsData.push({ name: layer.feature.properties.name, latlng });
+            });
+
+            calculateAndShowTerminals(featureLatLng, terminalsData);
         
-
-        //var mapdata = L.geoJSON(mapdata).addTo(map);
-
-        //Leaflet Layer Control
-       /*
-            // it works L.geoJSON(geoJSONsamp).addTo(map);
-            L.geoJSON(geoJSONsamp).bindPopup(function(layer){
-                return layer.feature.properties.building
-            }).addTo(map);
-
-            L.geoJSON(PantrancoSample).bindPopup(function(layer){
-                return layer.feature.properties.name
-            }).addTo(map);
-                 L.geoJSON(RailwaysString).bindPopup(function(layer){
-            }).addTo(map);        
-
-            */
-            //GeoJSON data
-            //Leaflet Layer Control
-
+*/
         
-
     </script>
     </body>
 </html>
